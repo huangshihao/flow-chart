@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="./node_modules/d3/d3.js"></script>
+    <script src="./node_modules/dagre-d3/dist/dagre-d3.js"></script>
+    <style>
+        .node rect,
+        .node circle,
+        .node ellipse,
+        .node polygon {
+            stroke: #333;
+            fill: #fff;
+            stroke-width: 1.5px;
+        }
+        .edgePath path {
+            stroke: #333;
+            fill: #333;
+            stroke-width: 1.5px;
+        }
+        g.complete > circle {
+            fill: #00ffd0;
+        }
+        g.not-complete > circle {
+            fill: #ccc;
+        }
+    </style>
+</head>
+<body>
+<svg id="schedule" width=1150 height=500></svg>
+<script>
+    /*
+    * 未完成:
+    *   1.分叉线
+    *   2.数据更新时的操作
+    * */
+    var node = [
+        {label:'开始',parentNode:null,complete:false},
+        {label:'商务意向',parentNode:'开始',complete:false},
+        {label:'商务合同',parentNode:'开始',complete:false},
+        {label:'项目启动',parentNode:'商务意向',complete:false},
+        {label:'基础能力联调',parentNode:'商务意向',complete:true},
+        {label:'系统开发联调',parentNode:'项目启动',complete:false},
+        {label:'实验室摸底',parentNode:'基础能力联调',complete:false},
+        {label:'实验室正式',parentNode:['系统开发联调','实验室摸底'],complete:false},
+        {label:'系统测试',parentNode:'系统开发联调',complete:false},
+        {label:'实验室APK钱包测试',parentNode:'实验室正式',complete:false},
+        {label:'提交上线准备材料',parentNode:['系统测试','实验室APK钱包测试'],complete:false},
+        {label:'生产配置',parentNode:'提交上线准备材料',complete:false},
+        {label:'BETA测试&报告',parentNode:'生产配置',complete:false},
+        {label:'商用',parentNode:['BETA测试&报告','商务合同'],complete:false},
+        {label:'完成',parentNode:'商用',complete:false}
+    ].reverse()
+
+var g = new dagreD3.graphlib.Graph()
+        .setGraph({
+            rankdir:'LR'
+        })
+        .setDefaultEdgeLabel(function() { return {
+            lineInterpolate: 'basis'
+        }; });
+
+node.forEach(function(item){
+    if(item.complete){
+        g.setNode(item.label,{label:item.label,shape:'circle',class:'complete'})
+    }else{
+        g.setNode(item.label,{label:item.label,shape:'circle',class:'not-complete'})
+    }
+    if(item.parentNode){
+        if(item.parentNode instanceof Array){
+            item.parentNode.forEach(function(edgeItem){
+                g.setEdge(edgeItem,item.label)
+            })
+        }else {
+//            console.log(item.label,item.parentNode)
+            g.setEdge(item.parentNode,item.label)
+        }
+    }
+
+})
+
+//g.setNode(0,{label:'开始',shape: "circle"})
+//g.setNode(1,{label:'商务意向',shape: "circle"})
+//g.setNode(2,{label:'商务合同',shape: "circle"})
+//
+//
+//    //设置连线
+//g.setEdge(0,1)
+//g.setEdge(0,2)
+
+    //渲染
+// Create the renderer
+var render = new dagreD3.render();
+
+// Set up an SVG group so that we can translate the final graph.
+var svg = d3.select("svg"),
+        svgGroup = svg.append("g");
+
+// Run the renderer. This is what draws the final graph.
+render(d3.select("svg g"), g);
+    var zoom = d3.behavior.zoom().on("zoom", function() {
+        svgGroup.attr("transform", "translate(" + d3.event.translate + ")" +
+                "scale(" + d3.event.scale + ")");
+    });
+    svg.call(zoom);
+//居中显示
+    var initialScale = 0.75;
+    zoom.translate([(svg.attr("width") - g.graph().width * initialScale) / 2, 20])
+        .scale(initialScale)
+        .event(svg);
+    svg.attr('height', g.graph().height * initialScale + 40);
+</script>
+</body>
+</html>
